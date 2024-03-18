@@ -23,8 +23,9 @@ var_ts <- data.frame(y1_t = var[, 1], y2_t = var[, 2])
 plot.ts(var_ts)
 ```
 
-![](VAR_files/figure-gfm/unnamed-chunk-2-1.png)<!-- --> \#### Checking
-stationarity of series
+![](VAR_files/figure-gfm/unnamed-chunk-2-1.png)<!-- -->
+
+#### Checking stationarity of series
 
 ``` r
 adf.test(var_ts$y1_t)
@@ -195,7 +196,7 @@ normality.test(model, multivariate.only = TRUE)
 
 ##### The p-value suggests that the normality assumption for the residuals is met.
 
-#### Granger and instantanius causality
+#### Granger and instantaneous causality
 
 ``` r
 granger_y1 <- causality(model, cause = "y1_t")
