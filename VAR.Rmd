@@ -1,0 +1,150 @@
+---
+title: "Vector Autoregressive (VAR)"
+output: github_document
+date: "2024-03-18"
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+#### Libraries 
+
+```{r}
+library(vars)
+library(tsDyn)
+library(tseries)
+library(stargazer)
+
+```
+
+#### Simalating bivariate VAR(2)
+
+```{r}
+set.seed(111)
+A1 <- matrix(c(0.5, 0.4, 0.1, 0.5), 2)
+A2 <- matrix(c(0, 0.25, 0, 0), 2)
+B <- cbind(A1, A2)
+var <- VAR.sim(B = B, n = 250, include = "none", lag = 2)
+var_ts <- data.frame(y1_t = var[, 1], y2_t = var[, 2])
+plot.ts(var_ts)
+
+```
+#### Checking stationarity of series
+
+```{r}
+adf.test(var_ts$y1_t)
+adf.test(var_ts$y2_t)
+
+```
+
+#### fitting a VAR model to simalated data
+
+```{r}
+lag <- VARselect(var_ts, lag.max = 5)
+lag
+model <- VAR(var_ts, p = 2, type = "non")
+stargazer(model$varresult, type = "text", style = "aer", title = "VAR(2)", columns.label = c("y1_t", "y2_t"))
+
+```
+#### Checking the stability
+
+```{r}
+roots(model, modulus = TRUE)
+
+```
+
+#### CUMSUM test and serial correlation
+
+```{r}
+stability_model <- stability(model)
+plot(stability_model$stability$y1_t, lwd = 2)
+plot(stability_model$stability$y2_t, lwd = 2)
+sctest(model)
+serial <- serial.test(model, lags.pt = 8)
+plot(serial, names = "y1_t")
+plot(serial, names = "y2_t")
+
+```
+
+#### Test for heteroscedasticity  
+```{r}
+arch.test(model, lags.multi = 12, multivariate.only = TRUE)
+
+```
+##### The p-value above 0.05 suggests homoscedasticity, or constant variance.
+
+#### Normality test
+
+```{r}
+normality.test(model, multivariate.only = TRUE)
+
+```
+##### The p-value suggests that the normality assumption for the residuals is met.
+
+
+#### Granger and instantanius causality
+
+```{r}
+granger_y1 <- causality(model, cause = "y1_t")
+granger_y2 <- causality(model, cause = "y2_t")
+
+granger_y1
+granger_y2
+
+```
+
+#### Impuse Responce 
+
+```{r}
+irf11 <- irf(model, impulse = "y1_t", response = "y1_t", n.ahead = 40, 
+boot = TRUE, run = 100, ci = 0.95)
+plot(irf11)
+
+irf12 <- irf(model, impulse = "y1_t", response = "y2_t", n.ahead = 40, 
+boot = TRUE, run = 100, ci = 0.95)
+plot(irf12)
+
+
+irf22 <- irf(model, impulse = "y2_t", response = "y2_t", n.ahead = 40, 
+boot = TRUE, run = 100, ci = 0.95)
+plot(irf22)
+
+
+irf21 <- irf(model, impulse = "y2_t", response = "y1_t", n.ahead = 40, 
+boot = TRUE, run = 100, ci = 0.95)
+plot(irf21)
+
+```
+
+
+##### Here we note that a positive shock to y1_t increases y2_t by a relatively large and persistent amount.
+
+
+
+#### Forecast Error Variance decomposition (FEVD)
+
+```{r}
+vd <- fevd(model, n.ahead = 15)
+plot(vd)
+```
+
+#### Forecast
+
+```{r}
+pred <- predict(model, n.ahead = 20)
+plot(pred, names = "y1_t")
+plot(pred, names = "y2_t")
+
+fanchart(pred, names = "y1_t", color = c("skyblue4", "skyblue3", "skyblue2", "skyblue1", 
+"skyblue", "purple4", "purple3", "purple2", "purple1", col.y = "skyblue"))
+
+fanchart(pred, names = "y2_t", color = c("skyblue4", "skyblue3", "skyblue2", "skyblue1", 
+"skyblue", "purple4", "purple3", "purple2", "purple1", col.y = "skyblue"))
+
+```
+
+
+
+
